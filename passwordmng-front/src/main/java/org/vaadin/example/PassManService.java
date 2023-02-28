@@ -23,7 +23,7 @@ public class PassManService implements Serializable {
             stmt.setString(1, mail);
             stmt.setString(2, password);
             ResultSet rs = stmt.executeQuery();
-            System.out.println(rs);
+            System.out.println(rs.getString("apellidos"));
             // Miramos los resultados de la query
             if (rs.next()) {
                 return 0;
