@@ -2,9 +2,10 @@ package org.vaadin.example;
 
 import java.io.Serializable;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @Service
 public class PassManService implements Serializable {
@@ -13,27 +14,71 @@ public class PassManService implements Serializable {
     private static final String USER = "root";
     private static final String PASSWORD = "passwd";
 
-    public int loginUsername(String mail, String password) {
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
+    public boolean authenticate(String username, String password) throws SQLException {
+        Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
 
-            System.out.println("Conexión exitosa");
+        // Authenticate the user based on the username and password
+        PreparedStatement statement = conn.prepareStatement("SELECT * FROM usuarios WHERE mail = ? AND password = ?");
+        statement.setString(1, username);
+        statement.setString(2, password);
+        ResultSet resultSet = statement.executeQuery();
+        return resultSet.next();
+    }
 
-            String sql = "SELECT * FROM usuarios WHERE mail=? AND password=?";
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, mail);
-            stmt.setString(2, password);
-            ResultSet rs = stmt.executeQuery();
-            System.out.println(rs.getString("apellidos"));
-            // Miramos los resultados de la query
-            if (rs.next()) {
-                return 0;
-            } else {
-                // Si el usuario no existe, mandamos un false
-                return 0;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+    public User getUser(String username) throws SQLException {
+        // Preparamos la query
+        Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+
+        PreparedStatement statement = conn.prepareStatement("SELECT * FROM usuarios WHERE mail = ?");
+        statement.setString(1, username);
+        ResultSet resultSet = statement.executeQuery();
+
+        // Si la query es correcta...
+        if (resultSet.next()) {
+            int userIndex = resultSet.getInt("userId");
+            String mail = resultSet.getString("mail");
+            String password = resultSet.getString("password");
+            String nombre = resultSet.getString("nombre");
+            String apellidos = resultSet.getString("apellidos");
+            return new User(userIndex, mail, password, nombre, apellidos);
+        } else {
+            return null;
         }
     }
 
+    public List<Red> getRedes(int userId) throws SQLException {
+        Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+
+        PreparedStatement statement = conn.prepareStatement("SELECT * FROM redes WHERE userId = ?");
+        statement.setInt(1, userId);
+        ResultSet resultSet = statement.executeQuery();
+
+        List<Red> listaRedes = new ArrayList<>();
+
+        // Si la query es correcta...
+        while(resultSet.next()) {
+            int userIndex = resultSet.getInt("userId");
+            int redId = resultSet.getInt("redId");
+            String mail = resultSet.getString("mail");
+            String password = resultSet.getString("password");
+            String nombre = resultSet.getString("nom_red");
+            listaRedes.add(new Red(redId, userIndex, mail, password, nombre));
+        }
+
+        return listaRedes;
+    }
+
+    public void addRed(Red red) throws SQLException {
+        Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+
+        PreparedStatement statement = conn.prepareStatement("INSERT INTO redes values (?, ?, ?, ?, ?)");
+        statement.setInt(1, red.getRedId());
+        statement.setInt(2, red.getUserId());
+        statement.setString(3, red.getMail());
+        statement.setString(4, red.getPassword());
+        statement.setString(5, red.getNomRed());
+
+        // Ejecutamos la query mediante update
+        int rowsInserted = statement.executeUpdate();
+    }
 }
